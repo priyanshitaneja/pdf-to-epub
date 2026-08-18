@@ -30,6 +30,8 @@ export interface PositionedRun {
   conf?: number;
   /** True when the run's text matrix is rotated or skewed relative to the page. */
   skewed?: boolean;
+  /** Set by line assembly when the run is offset and smaller than the line's body size. */
+  script?: 'sup' | 'sub';
 }
 
 /** Runs assembled into one visual line. */
