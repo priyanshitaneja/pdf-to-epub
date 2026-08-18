@@ -2,6 +2,7 @@ import type { Block, Inline, Provenance } from '../../types/document.ts';
 import { unionRect } from '../../pdf/geometry.ts';
 import { CELL_BREAK, stripCellBreaks, type Line } from '../types.ts';
 import { median, medianLeading } from './lines.ts';
+import type { AnnotatedLine } from './headings.ts';
 
 /** A leading gap this much larger than the document's median starts a new paragraph. */
 const LEADING_BREAK_FACTOR = 1.35;
@@ -33,7 +34,7 @@ export interface ParagraphOptions {
  * paragraph of every page is buffered rather than emitted immediately.
  */
 export interface PendingParagraph {
-  lines: Line[];
+  lines: AnnotatedLine[];
   page: number;
 }
 
@@ -50,7 +51,7 @@ export interface ParagraphResult {
  * per-boundary signals applied.
  */
 export function assembleParagraphs(
-  lines: Line[],
+  lines: AnnotatedLine[],
   options: ParagraphOptions,
 ): ParagraphResult {
   const incoming = options.pending?.lines ?? [];
@@ -62,11 +63,24 @@ export function assembleParagraphs(
   const columnRight = Math.max(...all.map((l) => l.rect.x + l.rect.w));
   const indentStyle = detectIndentStyle(all, columnLeft, leading);
 
-  const groups: Line[][] = [[all[0]!]];
+  const groups: AnnotatedLine[][] = [[all[0]!]];
   for (let i = 1; i < all.length; i += 1) {
     const previous = all[i - 1]!;
     const current = all[i]!;
+    // A heading neither continues a paragraph nor absorbs the next one - except that a heading
+    // wrapping onto a second line is still one heading. Real documents do this constantly (the
+    // roadmap PDF's title splits as "THE 24-WEEK ..." / "ROADMAP"), and treating the halves as
+    // separate headings produces a stub chapter and a broken TOC entry.
+    const bothHeadings = current.headingLevel !== 0 && previous.headingLevel !== 0;
+    const continuesHeading =
+      bothHeadings &&
+      current.headingLevel === previous.headingLevel &&
+      isNormalLeading(previous, current, leading);
+    const headingBoundary =
+      !continuesHeading && (current.headingLevel !== 0 || previous.headingLevel !== 0);
+
     if (
+      headingBoundary ||
       breaksParagraph({ previous, current, leading, columnLeft, columnRight, indentStyle })
     ) {
       groups.push([current]);
@@ -75,8 +89,10 @@ export function assembleParagraphs(
     }
   }
 
-  // The final group is held back only if more pages may follow.
-  const holdLast = groups.length > 0;
+  // The final group is held back only if it could continue on the next page. A heading cannot,
+  // so it is emitted immediately rather than buffered.
+  const lastGroup = groups[groups.length - 1];
+  const holdLast = groups.length > 0 && (lastGroup?.[0]?.headingLevel ?? 0) === 0;
   const emitted = holdLast ? groups.slice(0, -1) : groups;
   const pending = holdLast
     ? { lines: groups[groups.length - 1]!, page: options.page }
@@ -156,6 +172,18 @@ function breaksParagraph(input: {
   return false;
 }
 
+/**
+ * True when two lines sit at ordinary leading for the document.
+ *
+ * Used to tell a wrapped heading from two adjacent headings: the wrapped halves sit one normal
+ * line apart, whereas separate headings are separated by extra space.
+ */
+function isNormalLeading(previous: Line, current: Line, leading: number): boolean {
+  if (leading <= 0) return true;
+  const gap = current.baselineY - previous.baselineY;
+  return gap > 0 && gap <= leading * LEADING_BREAK_FACTOR;
+}
+
 function hasUnclosedDelimiter(text: string): boolean {
   let round = 0;
   let square = 0;
@@ -168,7 +196,7 @@ function hasUnclosedDelimiter(text: string): boolean {
   return round > 0 || square > 0;
 }
 
-function toBlock(lines: Line[], id: string, page: number): Block | null {
+function toBlock(lines: AnnotatedLine[], id: string, page: number): Block | null {
   const text = joinLines(lines);
   if (text.trim().length === 0) return null;
 
@@ -178,6 +206,18 @@ function toBlock(lines: Line[], id: string, page: number): Block | null {
     rect: unionRect(lines.map((l) => l.rect)),
     confidence: confidenceFor(lines),
   };
+
+  const headingLevel = lines[0]?.headingLevel ?? 0;
+  if (headingLevel !== 0) {
+    return {
+      id,
+      kind: 'h',
+      level: headingLevel,
+      anchor: anchorFor(text, id),
+      inlines: toInlines(text, lines),
+      prov,
+    };
+  }
 
   const marker = LIST_MARKER.exec(text);
   if (marker) {
@@ -241,7 +281,25 @@ function shouldDehyphenate(left: string, right: string): boolean {
  * the mapping. Runs that agree on style are merged so the output does not fragment into one
  * span per glyph.
  */
-function toInlines(text: string, lines: Line[]): Inline[] {
+/**
+ * Build a stable, readable anchor from the heading text.
+ *
+ * Falls back to the block id when the text yields nothing usable, so every heading is always
+ * addressable - a TOC entry pointing at a missing anchor is an epubcheck error.
+ */
+function anchorFor(text: string, id: string): string {
+  const slug = text
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .slice(0, 48)
+    .replace(/^-+|-+$/g, '');
+  return slug.length > 0 ? `${slug}-${id}` : id;
+}
+
+function toInlines(text: string, lines: AnnotatedLine[]): Inline[] {
   const plain = stripCellBreaks(text);
   if (plain.length === 0) return [];
 

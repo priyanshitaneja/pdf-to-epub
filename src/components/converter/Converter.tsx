@@ -16,6 +16,7 @@ export function Converter() {
     setMeta,
     startConvert,
     reportProgress,
+    applyPdfMeta,
     succeed,
     fail,
     reset,
@@ -38,6 +39,10 @@ export function Converter() {
         sink: (event) => {
           if (event.kind === 'progress') {
             reportProgress(event.stage, event.percent, event.detail);
+          } else if (event.kind === 'probed') {
+            // Prefill title/author/language from the PDF, so the metadata panel is populated
+            // before the user ever sees it.
+            applyPdfMeta(event.meta);
           } else if (event.kind === 'cover') {
             const candidate = event.candidates[0];
             if (candidate) {
@@ -51,7 +56,16 @@ export function Converter() {
     } catch (err) {
       fail(err instanceof Error ? err.message : String(err));
     }
-  }, [state.file, state.options, state.editedMeta, startConvert, reportProgress, succeed, fail]);
+  }, [
+    state.file,
+    state.options,
+    state.editedMeta,
+    startConvert,
+    reportProgress,
+    applyPdfMeta,
+    succeed,
+    fail,
+  ]);
 
   const blockedByValidation = state.result !== null && !state.result.validation.ok;
 

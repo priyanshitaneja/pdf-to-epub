@@ -55,6 +55,7 @@ export type WorkerEvent =
       detail?: string;
     }
   | { kind: 'pageDone'; jobId: string; page: number; tier: Tier; warnings: Warning[] }
+  | { kind: 'warning'; jobId: string; warning: Warning }
   | { kind: 'cover'; jobId: string; candidates: CoverCandidate[] }
   | { kind: 'result'; jobId: string; doc: DocModel }
   | { kind: 'error'; jobId: string; fatal: boolean; message: string; page?: number };
