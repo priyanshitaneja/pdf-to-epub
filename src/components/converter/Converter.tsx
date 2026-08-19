@@ -116,30 +116,38 @@ export function Converter() {
       )}
 
       {state.step === 'done' && state.result && (
-        <div className="border-line bg-surface enter flex flex-col gap-7 rounded-lg border p-7">
-          {cover && <CoverPanel cover={cover} />}
+        <div className="border-line bg-surface enter rounded-lg border p-6 sm:p-8">
+          {/*
+            Two columns from `lg`: the cover keeps its own column so it reads at close to a book's
+            presence, and the editable details sit beside it rather than below a mostly-empty row.
+          */}
+          <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,300px)_1fr] lg:gap-12">
+            {cover && <CoverPanel cover={cover} />}
 
-          <MetadataPanel
-            meta={state.editedMeta}
-            titleGuessed={
-              state.pdfMeta?.titleSource !== 'info' && state.pdfMeta?.titleSource !== 'xmp'
-            }
-            onChange={setMeta}
-          />
+            <div className="flex flex-col gap-7">
+              <MetadataPanel
+                meta={state.editedMeta}
+                titleGuessed={
+                  state.pdfMeta?.titleSource !== 'info' && state.pdfMeta?.titleSource !== 'xmp'
+                }
+                onChange={setMeta}
+              />
 
-          <ValidationReport validation={state.result.validation} />
+              <ValidationReport validation={state.result.validation} />
 
-          <div className="border-line flex flex-col gap-3 border-t pt-6">
-            <DownloadButton
-              blob={state.result.blob}
-              filename={state.result.filename}
-              blocked={blockedByValidation}
-              rebuilding={state.rebuilding}
-            />
-            <p className="text-ink-muted text-xs">
-              Edits to the details above apply on the next Convert. Send the downloaded file to your
-              Kindle with Send to Kindle.
-            </p>
+              <div className="border-line flex flex-col gap-3 border-t pt-6">
+                <DownloadButton
+                  blob={state.result.blob}
+                  filename={state.result.filename}
+                  blocked={blockedByValidation}
+                  rebuilding={state.rebuilding}
+                />
+                <p className="text-ink-muted max-w-[52ch] text-xs">
+                  Edits to the details above apply on the next Convert. Send the downloaded file to
+                  your Kindle with Send to Kindle.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}

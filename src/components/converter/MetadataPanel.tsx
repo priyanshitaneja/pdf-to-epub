@@ -13,8 +13,9 @@ const LANGUAGES = [
   ['ja', 'Japanese'], ['zh', 'Chinese'], ['ru', 'Russian'], ['ar', 'Arabic'],
 ] as const;
 
+/** Capped: a full-width text input in a wide column is harder to scan, not easier. */
 const FIELD =
-  'border-line bg-surface focus:border-line-strong w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none';
+  'border-line bg-surface focus:border-line-strong w-full max-w-lg rounded-md border px-3 py-2 text-sm transition-colors outline-none';
 
 /**
  * Title, author and language, editable before download.
