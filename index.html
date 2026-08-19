@@ -2,12 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PDF → EPUB for Kindle</title>
+    <!--
+      Everything else in the head, including the title, canonical, Open Graph tags and JSON-LD, is
+      written per page by scripts/prerender.mjs. Keeping it out of here means one source of truth
+      for four pages rather than four copies drifting apart.
+    -->
+    <!--PRERENDER-HEAD-->
   </head>
   <body>
-    <div id="root"></div>
+    <!--PRERENDER-BODY-->
+    <!--
+      Vite reads this tag to find the entry, and rewrites it to the hashed bundle on build. The
+      prerenderer strips it from pages with nothing interactive on them.
+    -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

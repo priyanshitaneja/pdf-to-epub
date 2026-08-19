@@ -46,10 +46,6 @@ jobs:
         env:
           VITE_BASE: /${{ github.event.repository.name }}/
 
-      # A 404.html identical to index.html makes client-side routes work on Pages, which has no
-      # rewrite rules. Harmless here (single route) and correct if routes are ever added.
-      - run: cp dist/index.html dist/404.html
-
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

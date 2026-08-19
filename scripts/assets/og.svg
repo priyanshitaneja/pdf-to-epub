@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+  <!--
+    Source for public/og.png.
+    
+    The canvas is square, with the 1200x630 card centred in it, because the only SVG rasteriser
+    available without adding a native dependency is macOS QuickLook, which fits to the longest edge.
+    A square source makes that fit predictable; the build step then crops the middle 630 rows back
+    out. Warm monochrome to match the site, and light-mode only on purpose: a social card is
+    composited onto someone else's surface, so it has to carry its own background.
+
+    Regenerate with: npm run assets:og
+  -->
+  <rect width="1200" height="1200" fill="#f7f6f3"/>
+
+  <g transform="translate(0 285)">
+    <rect width="1200" height="630" fill="#f7f6f3"/>
+    <!-- Hairline frame, the one structural device the design system uses. -->
+    <rect x="0.5" y="0.5" width="1199" height="629" fill="none" stroke="#dcdbd7" stroke-width="1"/>
+
+    <g font-family="New York, Iowan Old Style, Georgia, serif" fill="#111111">
+      <text x="88" y="292" font-size="96" letter-spacing="-3">PDF to EPUB,</text>
+      <text x="88" y="402" font-size="96" letter-spacing="-3">cover intact.</text>
+    </g>
+
+    <text x="88" y="486" font-family="SF Mono, Menlo, monospace" font-size="25" fill="#414140">
+      Free forever. Runs in your browser. Nothing is uploaded.
+    </text>
+
+    <!-- A book with a cover, which is the whole subject. -->
+    <g transform="translate(958 239)">
+      <rect x="0" y="0" width="140" height="206" rx="8" fill="#111111"/>
+      <rect x="27" y="144" width="86" height="12" rx="6" fill="#f7f6f3"/>
+      <rect x="27" y="171" width="54" height="12" rx="6" fill="#f7f6f3"/>
+    </g>
+  </g>
+</svg>

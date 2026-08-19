@@ -7,16 +7,20 @@
  * they occur: system font stacks instead of webfonts, no ambient background motion, and
  * hand-written SVG instead of an icon package. All three come from the same constraint — this
  * app runs entirely in the browser, does heavy CPU work on the main thread, and promises that
- * nothing leaves your machine.
+ * your document never leaves your machine.
  */
 
 @theme {
   /*
    * System stacks rather than Geist/Lyon/Switzer over the network. The protocol bans Inter and
    * asks for SF Pro plus an editorial serif; on the target platform `-apple-system` *is* SF Pro,
-   * and `ui-serif` is New York. Fetching webfonts would add a third-party request to a tool whose
-   * whole claim is that it never phones home, and would flash unstyled text on the one screen
-   * this app has.
+   * and `ui-serif` is New York. Fetching webfonts would add a request to a third-party host, and
+   * would flash unstyled text.
+   *
+   * Precision matters in how that claim is worded now. The page loads one analytics script, which
+   * Vercel proxies under this site's own origin, so there is still no third-party connection. What
+   * is unconditionally true, and what the on-page copy says, is that your PDF is never uploaded:
+   * the conversion has no network step at all.
    */
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
   --font-serif: ui-serif, 'New York', 'Iowan Old Style', Georgia, serif;
@@ -58,7 +62,7 @@
 /**
  * Dark mode keeps the same warm bias — neutral browns rather than blue-black, so the palette
  * reads as the same design rather than a different product. Follows the system preference only;
- * there is no toggle, because a single-screen utility does not need a settings surface.
+ * there is no toggle, because a utility this small does not need a settings surface.
  */
 @media (prefers-color-scheme: dark) {
   @theme {
