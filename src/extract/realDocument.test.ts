@@ -4,6 +4,7 @@ import JSZip from 'jszip';
 import { buildEpub } from '../epub/buildEpub.ts';
 import { extractDocument } from './extractDocument.ts';
 import type { PdfDocument } from '../pdf/loadDocument.ts';
+import { writeSolidPng } from '../epub/cover/writePng.ts';
 
 /**
  * The M2 acceptance test: a real PDF all the way to a validated EPUB.
@@ -17,23 +18,12 @@ import type { PdfDocument } from '../pdf/loadDocument.ts';
  */
 const FIXTURE = '/Users/priyanshi/Documents/personal/Frontend-Staff-Roadmap-24-Weeks.pdf';
 
-const TINY_JPEG_BASE64 =
-  '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0a' +
-  'HBwcJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPDIzM//bAEMBCQkJDAsMGA0NGDIhHCEyMjIyMjIy' +
-  'MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMv/AABEIAAQABAMBIgAC' +
-  'EQEDEQH/xAAfAAABBQEBAQEBAQAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAAB' +
-  'fQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5' +
-  'OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeo' +
-  'qaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/aAAwDAQAC' +
-  'EQMRAD8A9/8A/9k=';
-
+/** A real 1600x2560 cover, matching what the browser path produces. */
 function coverFixture() {
-  const binary = atob(TINY_JPEG_BASE64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  const png = writeSolidPng(1600, 2560, [28, 46, 84]);
   return {
-    blob: new Blob([bytes as unknown as BlobPart], { type: 'image/jpeg' }),
-    mime: 'image/jpeg' as const,
+    blob: new Blob([png as unknown as BlobPart], { type: 'image/png' }),
+    mime: 'image/png' as const,
     w: 1600,
     h: 2560,
   };
