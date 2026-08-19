@@ -4,7 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "sync-assets": "node scripts/sync-pdfjs-assets.mjs",
+    "predev": "npm run sync-assets",
     "dev": "vite",
+    "prebuild": "npm run sync-assets",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
@@ -30,7 +33,6 @@
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.2.0",
-    "vite-plugin-static-copy": "^4.1.1",
     "vitest": "^4.1.10"
   },
   "engines": {
