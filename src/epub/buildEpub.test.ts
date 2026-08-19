@@ -1,25 +1,23 @@
 import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
-import { base64ToBytes, sampleDoc } from './__fixtures__/sampleDoc.ts';
+import { sampleDoc } from './__fixtures__/sampleDoc.ts';
 import { buildEpub, type ResolvedCover } from './buildEpub.ts';
 import { epubFilename } from './filename.ts';
 import { EPUB_BANNED_CSS, STYLE_CSS } from './templates/styleCss.ts';
+import { writeSolidPng } from './cover/writePng.ts';
 
-/** A 4x4 JPEG, so the cover magic-byte check has something real to sniff. */
-const TINY_JPEG_BASE64 =
-  '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0a' +
-  'HBwcJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPDIzM//bAEMBCQkJDAsMGA0NGDIhHCEyMjIyMjIy' +
-  'MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMv/AABEIAAQABAMBIgAC' +
-  'EQEDEQH/xAAfAAABBQEBAQEBAQAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAAB' +
-  'fQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5' +
-  'OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeo' +
-  'qaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/aAAwDAQAC' +
-  'EQMRAD8A9/8A/9k=';
-
+/**
+ * A real 1600x2560 PNG, matching Kindle/KDP's recommended cover size.
+ *
+ * Was a 4x4 JPEG, which the validator now correctly rejects as too small for Kindle to build a
+ * library thumbnail. Using a genuine full-size image here means the happy-path tests exercise
+ * what the app actually produces.
+ */
 function coverFixture(): ResolvedCover {
+  const png = writeSolidPng(1600, 2560, [28, 46, 84]);
   return {
-    blob: new Blob([base64ToBytes(TINY_JPEG_BASE64) as unknown as BlobPart], { type: 'image/jpeg' }),
-    mime: 'image/jpeg',
+    blob: new Blob([png as unknown as BlobPart], { type: 'image/png' }),
+    mime: 'image/png',
     w: 1600,
     h: 2560,
   };
@@ -79,7 +77,7 @@ describe('buildEpub', () => {
     const { blob } = await build();
     const cover = await (await entries(blob)).file('OEBPS/cover.xhtml')!.async('string');
     expect(cover).toContain('viewBox="0 0 1600 2560"');
-    expect(cover).toContain('xlink:href="images/cover.jpg"');
+    expect(cover).toContain('xlink:href="images/cover.png"');
     // The cover page must not pull in the shared stylesheet, or it inherits body margins.
     expect(cover).not.toContain('style.css');
   });
@@ -93,7 +91,7 @@ describe('buildEpub', () => {
     const imgOpf = await (await entries(img.blob)).file('OEBPS/content.opf')!.async('string');
     expect(imgOpf).toContain('href="cover.xhtml" media-type="application/xhtml+xml"/>');
     const imgCover = await (await entries(img.blob)).file('OEBPS/cover.xhtml')!.async('string');
-    expect(imgCover).toContain('<img src="images/cover.jpg"');
+    expect(imgCover).toContain('<img src="images/cover.png"');
   });
 
   it('ships both nav.xhtml and toc.ncx', async () => {
@@ -197,5 +195,72 @@ describe('epubFilename', () => {
   it('falls back to the source filename, then to a constant', () => {
     expect(epubFilename('', [], 'My Paper.pdf')).toBe('My Paper.epub');
     expect(epubFilename('', [], '')).toBe('converted.epub');
+  });
+});
+
+describe('the cover regression that shipped', () => {
+  it('rejects an 8-byte PNG signature as the cover', async () => {
+    // Exactly what was in the EPUB handed over for a Kindle test: a PNG signature and nothing
+    // else. It passed validation because only magic bytes were checked, and Kindle showed no
+    // cover. The validator must now block the download instead.
+    const signatureOnly = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const result = await buildEpub(sampleDoc(), {
+      ...BUILD_OPTS,
+      cover: {
+        blob: new Blob([signatureOnly as unknown as BlobPart], { type: 'image/png' }),
+        mime: 'image/png',
+        w: 1600,
+        h: 2560,
+      },
+    });
+
+    expect(result.validation.ok).toBe(false);
+    const codes = result.validation.issues.filter((i) => i.severity === 'error').map((i) => i.code);
+    expect(codes).toContain('cover-undecodable');
+  });
+
+  it('rejects a cover too small for Kindle to build a thumbnail from', async () => {
+    const tiny = writeSolidPng(40, 60, [10, 10, 10]);
+    const result = await buildEpub(sampleDoc(), {
+      ...BUILD_OPTS,
+      cover: {
+        blob: new Blob([tiny as unknown as BlobPart], { type: 'image/png' }),
+        mime: 'image/png',
+        w: 40,
+        h: 60,
+      },
+    });
+    expect(result.validation.ok).toBe(false);
+    expect(result.validation.issues.map((i) => i.code)).toContain('cover-too-small');
+  });
+
+  it('accepts a real full-size cover with no errors', async () => {
+    const real = writeSolidPng(1600, 2560, [30, 50, 90]);
+    const result = await buildEpub(sampleDoc(), {
+      ...BUILD_OPTS,
+      cover: {
+        blob: new Blob([real as unknown as BlobPart], { type: 'image/png' }),
+        mime: 'image/png',
+        w: 1600,
+        h: 2560,
+      },
+    });
+    const errors = result.validation.issues.filter((i) => i.severity === 'error');
+    expect(errors, JSON.stringify(errors)).toEqual([]);
+  });
+
+  it('flags a declared media-type that disagrees with the real bytes', async () => {
+    const png = writeSolidPng(1600, 2560, [0, 0, 0]);
+    const result = await buildEpub(sampleDoc(), {
+      ...BUILD_OPTS,
+      cover: {
+        blob: new Blob([png as unknown as BlobPart], { type: 'image/jpeg' }),
+        // Declared JPEG, actually PNG - a classic silent Kindle rejection.
+        mime: 'image/jpeg',
+        w: 1600,
+        h: 2560,
+      },
+    });
+    expect(result.validation.issues.map((i) => i.code)).toContain('cover-mime-mismatch');
   });
 });

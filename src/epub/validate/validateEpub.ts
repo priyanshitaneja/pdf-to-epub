@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import { checkMimetypeBytes } from './byteChecks.ts';
+import { probeImage } from './imageProbe.ts';
 import { summarize, type ValidationIssue, type ValidationResult } from './types.ts';
 
 /** Advisory ceiling per XHTML file; above this Kindle's converter slows noticeably. */
@@ -7,11 +8,10 @@ const MAX_XHTML_BYTES = 300_000;
 /** Advisory ceiling for the whole book. */
 const MAX_EPUB_BYTES = 50 * 1024 * 1024;
 
-const IMAGE_MAGIC: Array<{ mime: string; bytes: number[] }> = [
-  { mime: 'image/jpeg', bytes: [0xff, 0xd8, 0xff] },
-  { mime: 'image/png', bytes: [0x89, 0x50, 0x4e, 0x47] },
-  { mime: 'image/gif', bytes: [0x47, 0x49, 0x46] },
-];
+/** Below this on either edge, Kindle declines to build a library thumbnail at all. */
+const MIN_COVER_EDGE = 100;
+/** Kindle/KDP's recommended long edge. Smaller still works, but looks soft in the grid. */
+const RECOMMENDED_COVER_LONG_EDGE = 1000;
 
 /**
  * Validate a generated EPUB by re-opening it, so the writer's own output is checked rather
@@ -327,22 +327,42 @@ async function checkCover(
       path: coverPath,
     });
   } else {
-    const actual = sniffImageMime(bytes);
-    if (actual === null) {
-      issues.push({
-        severity: 'warning',
-        code: 'cover-format-unknown',
-        message: `Could not identify the format of "${coverPath}" from its magic bytes.`,
-        path: coverPath,
-      });
-    } else if (actual !== declaredMime) {
-      // A media-type that disagrees with the bytes is a classic silent Kindle rejection.
+    // Parse the image header rather than trusting magic bytes. An 8-byte file containing only a
+    // PNG signature satisfies a magic-byte check and shipped as a "valid" cover once, which
+    // Kindle rendered as no cover at all.
+    const probe = probeImage(bytes);
+    if (probe === null) {
       issues.push({
         severity: 'error',
-        code: 'cover-mime-mismatch',
-        message: `Cover is declared as "${declaredMime}" but its bytes are ${actual}.`,
+        code: 'cover-undecodable',
+        message: `The cover image "${coverPath}" is ${bytes.length} bytes and has no readable image header. Kindle will show no cover.`,
         path: coverPath,
       });
+    } else {
+      if (probe.mime !== declaredMime) {
+        // A media-type that disagrees with the bytes is a classic silent Kindle rejection.
+        issues.push({
+          severity: 'error',
+          code: 'cover-mime-mismatch',
+          message: `Cover is declared as "${declaredMime}" but its bytes are ${probe.mime}.`,
+          path: coverPath,
+        });
+      }
+      if (probe.width < MIN_COVER_EDGE || probe.height < MIN_COVER_EDGE) {
+        issues.push({
+          severity: 'error',
+          code: 'cover-too-small',
+          message: `The cover image is ${probe.width}x${probe.height}. Kindle needs at least ${MIN_COVER_EDGE}px on each edge to show a library thumbnail.`,
+          path: coverPath,
+        });
+      } else if (Math.max(probe.width, probe.height) < RECOMMENDED_COVER_LONG_EDGE) {
+        issues.push({
+          severity: 'warning',
+          code: 'cover-low-resolution',
+          message: `The cover is ${probe.width}x${probe.height}; ${RECOMMENDED_COVER_LONG_EDGE}px on the long edge looks better in the Kindle library.`,
+          path: coverPath,
+        });
+      }
     }
   }
 
@@ -501,13 +521,6 @@ function parseXml(source: string): Document | string {
 function textOf(doc: Document, selector: string): string | null {
   const el = doc.querySelector(selector);
   return el?.textContent?.trim() ?? null;
-}
-
-function sniffImageMime(bytes: Uint8Array): string | null {
-  for (const { mime, bytes: magic } of IMAGE_MAGIC) {
-    if (magic.every((b, i) => bytes[i] === b)) return mime;
-  }
-  return null;
 }
 
 function splitFragment(href: string): [string, string | null] {
