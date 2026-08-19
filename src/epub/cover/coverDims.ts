@@ -11,6 +11,9 @@ export const COVER_LONG_EDGE_HIGH = 2560;
 export const COVER_MAX_LONG_EDGE = 2560;
 export const COVER_MAX_PIXELS = 4_000_000;
 
+/** Above this size a cover is re-encoded at lower quality rather than embedded as-is. */
+export const COVER_MAX_BYTES = 2 * 1024 * 1024;
+
 export const COVER_RATIO_MIN = 1.25;
 export const COVER_RATIO_MAX = 1.9;
 

@@ -1,7 +1,9 @@
 import { useCallback, useRef, useState } from 'react';
-import type { CoverCandidate } from '../../types/document.ts';
+import type { CoverCandidate, DocModel } from '../../types/document.ts';
 import { useConverterState } from '../../hooks/useConverterState.ts';
 import { runConversion } from '../../conversion/runConversion.ts';
+import { rebuildEpub } from '../../conversion/rebuildEpub.ts';
+import { coverFromFile } from '../../epub/cover/userCover.ts';
 import { Button } from '../ui/Button.tsx';
 import { IconAlert } from '../ui/icons.tsx';
 import { FileDropzone } from './FileDropzone.tsx';
@@ -17,6 +19,8 @@ export function Converter() {
     selectFile,
     setMeta,
     setFilename,
+    setCover,
+    setRebuilding,
     startConvert,
     reportProgress,
     applyPdfMeta,
@@ -25,10 +29,41 @@ export function Converter() {
     reset,
   } = useConverterState();
 
-  const [cover, setCover] = useState<CoverCandidate | null>(null);
-  // The document model is large and non-reactive, so it lives in a ref rather than state.
-  // Keeping it lets metadata edits rebuild the EPUB without re-reading the PDF.
+  /** The cover embedded in the EPUB as it currently stands, for display. */
+  const [coverPreview, setCoverPreview] = useState<CoverCandidate | null>(null);
+  /** A rejected upload. Kept out of `state.error`, which would tear down the whole result card. */
+  const [coverError, setCoverError] = useState<string | null>(null);
+
+  /*
+   * The document model is large and non-reactive, so it lives in a ref rather than state. Keeping
+   * it lets a cover swap rebuild the EPUB without re-reading the PDF.
+   */
+  const model = useRef<DocModel | null>(null);
+  /** The cover the pipeline last chose, so re-converting does not re-render page one. */
   const lastCover = useRef<CoverCandidate | null>(null);
+
+  /*
+   * Refs sit outside the state object, so `selectFile`'s reset to INITIAL does not clear them.
+   * Without this, choosing a second PDF would keep the first one's cover and model.
+   */
+  const chooseFile = useCallback(
+    (file: File) => {
+      model.current = null;
+      lastCover.current = null;
+      setCoverPreview(null);
+      setCoverError(null);
+      selectFile(file);
+    },
+    [selectFile],
+  );
+
+  const startOver = useCallback(() => {
+    model.current = null;
+    lastCover.current = null;
+    setCoverPreview(null);
+    setCoverError(null);
+    reset();
+  }, [reset]);
 
   const convert = useCallback(async () => {
     if (!state.file) return;
@@ -38,7 +73,7 @@ export function Converter() {
         file: state.file,
         options: state.options,
         meta: state.editedMeta,
-        coverOverride: lastCover.current,
+        coverOverride: state.coverOverride ?? lastCover.current,
         sink: (event) => {
           if (event.kind === 'progress') {
             reportProgress(event.stage, event.percent, event.detail);
@@ -49,9 +84,12 @@ export function Converter() {
           } else if (event.kind === 'cover') {
             const candidate = event.candidates[0];
             if (candidate) {
-              setCover(candidate);
+              setCoverPreview(candidate);
               lastCover.current = candidate;
             }
+          } else if (event.kind === 'result') {
+            // Retained so a later cover swap can rebuild without touching the PDF again.
+            model.current = event.doc;
           }
         },
       });
@@ -63,12 +101,51 @@ export function Converter() {
     state.file,
     state.options,
     state.editedMeta,
+    state.coverOverride,
     startConvert,
     reportProgress,
     applyPdfMeta,
     succeed,
     fail,
   ]);
+
+  const uploadCover = useCallback(
+    async (file: File) => {
+      setCoverError(null);
+
+      let candidate: CoverCandidate;
+      try {
+        candidate = await coverFromFile(file);
+      } catch (err) {
+        setCoverError(err instanceof Error ? err.message : String(err));
+        return;
+      }
+
+      // Held in state so it survives a re-convert, and shown immediately for feedback.
+      setCover(candidate);
+      lastCover.current = candidate;
+      setCoverPreview(candidate);
+
+      // Before the first conversion there is nothing to rebuild; it applies on Convert instead.
+      if (!model.current) return;
+
+      setRebuilding(true);
+      try {
+        succeed(
+          await rebuildEpub({
+            model: model.current,
+            cover: candidate,
+            meta: state.editedMeta,
+          }),
+        );
+      } catch (err) {
+        // Inline rather than `fail`, so a bad rebuild does not discard a working result.
+        setRebuilding(false);
+        setCoverError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [setCover, setRebuilding, succeed, state.editedMeta],
+  );
 
   const blockedByValidation = state.result !== null && !state.result.validation.ok;
   // `filenameOverride` holds the stem alone, so the extension stays ours to control.
@@ -83,7 +160,7 @@ export function Converter() {
         <FileDropzone
           file={state.file}
           disabled={state.step === 'converting'}
-          onSelect={selectFile}
+          onSelect={chooseFile}
           onReject={fail}
         />
         {/* Stated once, and here rather than in the header: this is the moment you hand over a file. */}
@@ -116,7 +193,7 @@ export function Converter() {
           </span>
           <div className="flex flex-1 flex-col gap-2">
             <p className="text-pale-red-ink text-sm">{state.error}</p>
-            <button type="button" onClick={reset} className="text-pale-red-ink self-start text-xs underline">
+            <button type="button" onClick={startOver} className="text-pale-red-ink self-start text-xs underline">
               Start over
             </button>
           </div>
@@ -130,7 +207,14 @@ export function Converter() {
             presence, and the editable details sit beside it rather than below a mostly-empty row.
           */}
           <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,300px)_1fr] lg:gap-12">
-            {cover && <CoverPanel cover={cover} />}
+            {coverPreview && (
+              <CoverPanel
+                cover={coverPreview}
+                busy={state.rebuilding}
+                error={coverError}
+                onUpload={uploadCover}
+              />
+            )}
 
             <div className="flex flex-col gap-7">
               <MetadataPanel
@@ -152,8 +236,8 @@ export function Converter() {
                   onFilenameChange={setFilename}
                 />
                 <p className="text-ink-muted max-w-[52ch] text-xs">
-                  Edits to the details above apply on the next Convert. Send the downloaded file to
-                  your Kindle with Send to Kindle.
+                  Title and author changes apply on the next Convert. A new cover applies straight
+                  away. Send the downloaded file to your Kindle with Send to Kindle.
                 </p>
               </div>
             </div>

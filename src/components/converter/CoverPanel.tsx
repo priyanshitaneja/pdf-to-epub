@@ -1,9 +1,15 @@
 import type { CoverCandidate } from '../../types/document.ts';
 import { isReasonableCoverRatio } from '../../epub/cover/coverDims.ts';
 import { useObjectUrl } from '../../hooks/useObjectUrl.ts';
+import { CoverDropzone } from './CoverDropzone.tsx';
 
 export interface CoverPanelProps {
   cover: CoverCandidate;
+  /** True while a replacement is being applied, which disables the picker. */
+  busy?: boolean;
+  /** A rejected upload, shown here rather than replacing the whole result card. */
+  error?: string | null;
+  onUpload(file: File): void;
 }
 
 const PROVENANCE: Record<CoverCandidate['source'], string> = {
@@ -21,7 +27,7 @@ const PROVENANCE: Record<CoverCandidate['source'], string> = {
  * tool proves itself. It gets its own reveal animation and, on wide screens, its own column at
  * something close to a real book's presence rather than a 120px chip.
  */
-export function CoverPanel({ cover }: CoverPanelProps) {
+export function CoverPanel({ cover, busy = false, error, onUpload }: CoverPanelProps) {
   const url = useObjectUrl(cover.blob);
   const oddRatio = !isReasonableCoverRatio(cover.w, cover.h);
 
@@ -45,6 +51,24 @@ export function CoverPanel({ cover }: CoverPanelProps) {
         {oddRatio && (
           <p className="bg-pale-yellow text-pale-yellow-ink mt-1 max-w-[280px] rounded px-2 py-1.5 text-xs">
             Unusual proportions for a book cover. It will still display, just not fill the screen.
+          </p>
+        )}
+      </div>
+
+      {/*
+        Replacing the cover rebuilds the EPUB from the document already in memory, so it applies
+        immediately rather than waiting for the next Convert. An off-ratio image is flagged above and
+        never cropped: reframing artwork someone chose is not a converter's decision to make.
+      */}
+      <div className="flex flex-col gap-2">
+        <CoverDropzone disabled={busy} onSelect={onUpload} />
+        {error ? (
+          <p className="bg-pale-red text-pale-red-ink max-w-[280px] rounded px-2 py-1.5 text-xs">
+            {error}
+          </p>
+        ) : (
+          <p className="text-ink-muted max-w-[280px] text-xs">
+            JPEG, PNG or WebP. 1600 by 2560 is what Amazon recommends.
           </p>
         )}
       </div>

@@ -6,6 +6,7 @@ import { selectCover } from '../epub/cover/renderPageCover.ts';
 import { describeLoadError, loadPdf } from '../pdf/loadDocument.ts';
 import { extractDocument } from '../extract/extractDocument.ts';
 import type { ConvertEventSink } from './types.ts';
+import { resolveMeta } from './rebuildEpub.ts';
 
 export interface RunConversionInput {
   file: File;
@@ -75,12 +76,7 @@ export async function runConversion(input: RunConversionInput): Promise<EpubBuil
       meta: model.meta,
     });
 
-    // The user's edits win over anything read from the PDF.
-    const authors = meta.author
-      .split(',')
-      .map((a) => a.trim())
-      .filter((a) => a.length > 0);
-    const title = meta.title.trim() || model.meta.title;
+    const { title, authors } = resolveMeta(meta, model);
 
     emit(sink, { kind: 'progress', jobId: JOB, stage: 'images', page: 0, pageCount, percent: 84, detail: 'Choosing a cover' });
 
@@ -102,6 +98,12 @@ export async function runConversion(input: RunConversionInput): Promise<EpubBuil
     for (const warning of model.report.warnings) {
       emit(sink, { kind: 'warning', jobId: JOB, warning });
     }
+
+    /*
+     * Inside the try, so it lands before the `finally` destroys the pdf.js document. Safe to hand
+     * out: the seam guarantees a DocModel holds no pdf.js handles, only plain data and Blobs.
+     */
+    emit(sink, { kind: 'result', jobId: JOB, doc: model });
 
     return result;
   } finally {

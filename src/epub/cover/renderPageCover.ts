@@ -1,10 +1,7 @@
 import type { CoverCandidate } from '../../types/document.ts';
 import type { PdfDocument } from '../../pdf/loadDocument.ts';
-import { COVER_LONG_EDGE_DEFAULT, fitLongEdge } from './coverDims.ts';
+import { COVER_LONG_EDGE_DEFAULT, COVER_MAX_BYTES, fitLongEdge } from './coverDims.ts';
 import { canvasToBlob, makeCanvas } from './synthesizeCover.ts';
-
-/** Above this size the cover is re-encoded at lower quality, then at lower resolution. */
-const MAX_COVER_BYTES = 2 * 1024 * 1024;
 
 /**
  * Render a PDF page to use as the cover.
@@ -39,7 +36,7 @@ export async function renderPageCover(
     if (isEffectivelyBlank(ctx, canvas.width, canvas.height)) return null;
 
     let blob = await canvasToBlob(canvas, 'image/jpeg', 0.92);
-    if (blob.size > MAX_COVER_BYTES) blob = await canvasToBlob(canvas, 'image/jpeg', 0.85);
+    if (blob.size > COVER_MAX_BYTES) blob = await canvasToBlob(canvas, 'image/jpeg', 0.85);
 
     const result: CoverCandidate = {
       source: 'rendered-page',
