@@ -2,15 +2,33 @@ import { Converter } from './components/converter/Converter.tsx';
 
 export default function App() {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col gap-8 px-6 py-16">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold tracking-tight">PDF → EPUB</h1>
-        <p className="text-text-secondary text-sm">
-          Converts a PDF into a Kindle-ready EPUB that keeps its cover. Runs entirely in your
-          browser — the file never leaves your machine.
-        </p>
-      </header>
-      <Converter />
-    </main>
+    <div className="min-h-dvh">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-10 px-6 py-20 sm:py-28">
+        <header className="enter flex flex-col gap-4" style={{ '--index': 0 } as React.CSSProperties}>
+          <p className="text-ink-muted font-mono text-xs tracking-[0.14em] uppercase">
+            Local conversion · nothing uploaded
+          </p>
+          <h1 className="font-serif text-5xl leading-[1.1] tracking-[-0.03em] sm:text-6xl">
+            PDF to EPUB,
+            <br />
+            cover intact.
+          </h1>
+          <p className="text-ink-soft max-w-lg text-base">
+            Kindle finds a cover through a declaration most converters forget to write, so the book
+            arrives as a grey placeholder. This one writes it — and checks the file before handing
+            it over.
+          </p>
+        </header>
+
+        <Converter />
+
+        <footer
+          className="border-line text-ink-muted enter border-t pt-6 text-xs"
+          style={{ '--index': 6 } as React.CSSProperties}
+        >
+          Runs entirely in this tab. Your file is never sent anywhere.
+        </footer>
+      </main>
+    </div>
   );
 }

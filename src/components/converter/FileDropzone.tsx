@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { IconDocument } from '../ui/icons.tsx';
 
 export interface FileDropzoneProps {
   file: File | null;
@@ -12,20 +13,19 @@ const MAX_BYTES = 200 * 1024 * 1024;
 /**
  * Drag-and-drop plus click-to-browse, for a single PDF.
  *
- * Built as a `<label>` around a visually hidden file input, so clicking and keyboard
- * activation both work without any custom key handling.
+ * Built as a `<label>` around a visually hidden file input, so clicking and keyboard activation
+ * both work without any custom key handling.
  */
 export function FileDropzone({ file, disabled, onSelect, onReject }: FileDropzoneProps) {
   const [dragging, setDragging] = useState(false);
-  // dragenter/dragleave fire for every child element, so depth has to be counted rather
-  // than treated as a boolean.
+  // dragenter/dragleave fire for every child element, so depth has to be counted rather than
+  // treated as a boolean.
   const dragDepth = useRef(0);
 
   function accept(candidate: File | undefined): void {
     if (!candidate) return;
     // Windows often reports an empty MIME type, so the extension is a legitimate fallback.
-    const looksPdf =
-      candidate.type === 'application/pdf' || /\.pdf$/i.test(candidate.name);
+    const looksPdf = candidate.type === 'application/pdf' || /\.pdf$/i.test(candidate.name);
     if (!looksPdf) {
       onReject(`"${candidate.name}" is not a PDF.`);
       return;
@@ -42,9 +42,12 @@ export function FileDropzone({ file, disabled, onSelect, onReject }: FileDropzon
   return (
     <label
       className={[
-        'flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors',
-        dragging ? 'border-accent bg-accent/5' : 'border-border bg-surface-raised',
-        disabled ? 'pointer-events-none opacity-60' : '',
+        'group flex cursor-pointer flex-col items-center gap-3 rounded-lg border px-6 py-14 text-center',
+        'transition-[border-color,background-color,transform] duration-200',
+        dragging
+          ? 'border-line-strong bg-surface-sunken scale-[0.995]'
+          : 'border-line bg-surface hover:border-line-strong',
+        disabled ? 'pointer-events-none opacity-50' : '',
       ].join(' ')}
       onDragEnter={(e) => {
         e.preventDefault();
@@ -75,17 +78,18 @@ export function FileDropzone({ file, disabled, onSelect, onReject }: FileDropzon
           e.target.value = '';
         }}
       />
+      <IconDocument className="text-ink-muted h-6 w-6" />
       {file ? (
         <>
-          <span className="font-medium">{file.name}</span>
-          <span className="text-text-secondary text-sm">
-            {(file.size / 1024 / 1024).toFixed(1)} MB · click to choose a different file
+          <span className="font-mono text-sm">{file.name}</span>
+          <span className="text-ink-muted text-xs">
+            {(file.size / 1024 / 1024).toFixed(1)} MB · click to choose another
           </span>
         </>
       ) : (
         <>
-          <span className="font-medium">Drop a PDF here</span>
-          <span className="text-text-secondary text-sm">or click to browse</span>
+          <span className="text-base">Drop a PDF here</span>
+          <span className="text-ink-muted text-xs">or click to browse</span>
         </>
       )}
     </label>

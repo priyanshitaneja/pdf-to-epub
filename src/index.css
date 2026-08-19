@@ -1,19 +1,92 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+/**
+ * Warm monochrome, editorial, flat.
+ *
+ * Following the `minimalist-ui` taste protocol, with three deliberate deviations noted where
+ * they occur: system font stacks instead of webfonts, no ambient background motion, and
+ * hand-written SVG instead of an icon package. All three come from the same constraint — this
+ * app runs entirely in the browser, does heavy CPU work on the main thread, and promises that
+ * nothing leaves your machine.
+ */
 
-  --color-surface: #f5f5f7;
-  --color-surface-raised: #ffffff;
-  --color-border: #d8d8dc;
-  --color-text-primary: #1d1d1f;
-  --color-text-secondary: #6e6e73;
-  --color-accent: #0071e3;
-  --color-accent-hover: #0077ed;
-  --color-ok: #1a7f37;
-  --color-warn: #9a6700;
-  --color-danger: #cf222e;
+@theme {
+  /*
+   * System stacks rather than Geist/Lyon/Switzer over the network. The protocol bans Inter and
+   * asks for SF Pro plus an editorial serif; on the target platform `-apple-system` *is* SF Pro,
+   * and `ui-serif` is New York. Fetching webfonts would add a third-party request to a tool whose
+   * whole claim is that it never phones home, and would flash unstyled text on the one screen
+   * this app has.
+   */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  --font-serif: ui-serif, 'New York', 'Iowan Old Style', Georgia, serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+
+  /* Canvas and surfaces: warm bone, never cool grey. */
+  --color-canvas: #f7f6f3;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f9f9f8;
+
+  /* Structure. One border weight, one colour, everywhere. */
+  --color-line: #eaeaea;
+  --color-line-strong: #dcdbd7;
+
+  /* Text. Never pure black. */
+  --color-ink: #111111;
+  --color-ink-soft: #414140;
+  --color-ink-muted: #787774;
+
+  /* Solid near-black for primary actions, per the protocol. */
+  --color-action: #111111;
+  --color-action-hover: #333333;
+
+  /* Accents are scarce and desaturated — status only, never decoration. */
+  --color-pale-green: #edf3ec;
+  --color-pale-green-ink: #346538;
+  --color-pale-yellow: #fbf3db;
+  --color-pale-yellow-ink: #956400;
+  --color-pale-red: #fdebec;
+  --color-pale-red-ink: #9f2f2d;
+  --color-pale-blue: #e1f3fe;
+  --color-pale-blue-ink: #1f6c9f;
+
+  /* The one easing curve, and the one shadow. */
+  --ease-quiet: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-lift: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/**
+ * Dark mode keeps the same warm bias — neutral browns rather than blue-black, so the palette
+ * reads as the same design rather than a different product. Follows the system preference only;
+ * there is no toggle, because a single-screen utility does not need a settings surface.
+ */
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-canvas: #191918;
+    --color-surface: #212120;
+    --color-surface-sunken: #1c1c1b;
+
+    --color-line: #302f2d;
+    --color-line-strong: #3d3c39;
+
+    --color-ink: #f2f1ee;
+    --color-ink-soft: #cfcdc7;
+    --color-ink-muted: #8f8d86;
+
+    --color-action: #f2f1ee;
+    --color-action-hover: #ffffff;
+
+    --color-pale-green: #1d2a1e;
+    --color-pale-green-ink: #8fc493;
+    --color-pale-yellow: #2b2313;
+    --color-pale-yellow-ink: #d8ab4e;
+    --color-pale-red: #2c1a1a;
+    --color-pale-red-ink: #e08b88;
+    --color-pale-blue: #14252f;
+    --color-pale-blue-ink: #7fbde3;
+
+    --shadow-lift: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
 }
 
 @layer base {
@@ -25,9 +98,69 @@
 
   body {
     font-family: var(--font-sans);
-    background-color: var(--color-surface);
-    color: var(--color-text-primary);
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Inputs inherit the palette rather than the platform's. */
+  input,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /*
+   * Staggered entry. Set `--index` on each child; nothing mounts all at once.
+   * Transform and opacity only — no layout-triggering properties, because this animation runs
+   * while pdf.js is parsing on the same thread.
+   */
+  .enter {
+    animation: enter 600ms var(--ease-quiet) backwards;
+    animation-delay: calc(var(--index, 0) * 70ms);
+  }
+
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* The cover reveal — the moment the tool proves it worked. Slightly slower, slightly further. */
+  .reveal {
+    animation: reveal 720ms var(--ease-quiet) backwards;
+  }
+
+  @keyframes reveal {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .enter,
+    .reveal {
+      animation: none;
+    }
   }
 }

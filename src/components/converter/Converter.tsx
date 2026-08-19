@@ -2,6 +2,8 @@ import { useCallback, useRef, useState } from 'react';
 import type { CoverCandidate } from '../../types/document.ts';
 import { useConverterState } from '../../hooks/useConverterState.ts';
 import { runConversion } from '../../conversion/runConversion.ts';
+import { Button } from '../ui/Button.tsx';
+import { IconAlert } from '../ui/icons.tsx';
 import { FileDropzone } from './FileDropzone.tsx';
 import { StageProgress } from './StageProgress.tsx';
 import { CoverPanel } from './CoverPanel.tsx';
@@ -71,23 +73,20 @@ export function Converter() {
 
   return (
     <div className="flex flex-col gap-6">
-      <FileDropzone
-        file={state.file}
-        disabled={state.step === 'converting'}
-        onSelect={selectFile}
-        onReject={fail}
-      />
+      <div className="enter" style={{ '--index': 1 } as React.CSSProperties}>
+        <FileDropzone
+          file={state.file}
+          disabled={state.step === 'converting'}
+          onSelect={selectFile}
+          onReject={fail}
+        />
+      </div>
 
-      {(state.step === 'ready' || state.step === 'done' || state.step === 'error') &&
-        state.file && (
-          <button
-            type="button"
-            onClick={convert}
-            className="bg-accent hover:bg-accent-hover rounded-xl px-5 py-3 font-medium text-white transition-colors"
-          >
-            {state.step === 'done' ? 'Convert again' : 'Convert'}
-          </button>
-        )}
+      {(state.step === 'ready' || state.step === 'done' || state.step === 'error') && state.file && (
+        <div className="enter" style={{ '--index': 2 } as React.CSSProperties}>
+          <Button onClick={convert}>{state.step === 'done' ? 'Convert again' : 'Convert'}</Button>
+        </div>
+      )}
 
       {state.step === 'converting' && state.progress && (
         <StageProgress
@@ -99,37 +98,45 @@ export function Converter() {
       )}
 
       {state.step === 'error' && state.error && (
-        <div className="border-danger/30 bg-danger/5 text-danger flex items-start justify-between gap-4 rounded-xl border px-4 py-3 text-sm">
-          <span>{state.error}</span>
-          <button type="button" onClick={reset} className="shrink-0 underline">
-            Start over
-          </button>
+        <div className="border-line bg-pale-red flex items-start gap-3 rounded-lg border p-4">
+          <span className="text-pale-red-ink mt-0.5 shrink-0">
+            <IconAlert className="h-4 w-4" />
+          </span>
+          <div className="flex flex-1 flex-col gap-2">
+            <p className="text-pale-red-ink text-sm">{state.error}</p>
+            <button type="button" onClick={reset} className="text-pale-red-ink self-start text-xs underline">
+              Start over
+            </button>
+          </div>
         </div>
       )}
 
       {state.step === 'done' && state.result && (
-        <div className="border-border bg-surface-raised flex flex-col gap-5 rounded-xl border p-5">
+        <div className="border-line bg-surface enter flex flex-col gap-7 rounded-lg border p-7">
           {cover && <CoverPanel cover={cover} />}
 
           <MetadataPanel
             meta={state.editedMeta}
-            titleGuessed={state.pdfMeta?.titleSource !== 'info' && state.pdfMeta?.titleSource !== 'xmp'}
+            titleGuessed={
+              state.pdfMeta?.titleSource !== 'info' && state.pdfMeta?.titleSource !== 'xmp'
+            }
             onChange={setMeta}
           />
 
           <ValidationReport validation={state.result.validation} />
 
-          <DownloadButton
-            blob={state.result.blob}
-            filename={state.result.filename}
-            blocked={blockedByValidation}
-            rebuilding={state.rebuilding}
-          />
-
-          <p className="text-text-secondary text-xs">
-            Metadata edits apply on the next Convert. Send the downloaded file to your Kindle
-            with Send to Kindle.
-          </p>
+          <div className="border-line flex flex-col gap-3 border-t pt-6">
+            <DownloadButton
+              blob={state.result.blob}
+              filename={state.result.filename}
+              blocked={blockedByValidation}
+              rebuilding={state.rebuilding}
+            />
+            <p className="text-ink-muted text-xs">
+              Edits to the details above apply on the next Convert. Send the downloaded file to your
+              Kindle with Send to Kindle.
+            </p>
+          </div>
         </div>
       )}
     </div>

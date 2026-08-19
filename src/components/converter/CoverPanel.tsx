@@ -14,36 +14,38 @@ const PROVENANCE: Record<CoverCandidate['source'], string> = {
 };
 
 /**
- * Shows the cover that will be embedded, before the download happens.
+ * The cover that will be embedded, shown before the download.
  *
- * This is the confirmation step that matters most: the complaint that prompted this tool was
- * that other converters silently drop the cover, so seeing it here is what makes the result
- * trustworthy.
+ * Given more visual weight than anything else on the screen, deliberately. The complaint that
+ * started this project was that other converters silently drop the cover, so this thumbnail is
+ * the moment the tool proves itself — it gets the reveal animation and the largest single element
+ * in the result panel.
  */
 export function CoverPanel({ cover }: CoverPanelProps) {
   const url = useObjectUrl(cover.blob);
   const oddRatio = !isReasonableCoverRatio(cover.w, cover.h);
 
   return (
-    <section className="flex gap-4">
-      <div className="border-border bg-surface w-[120px] shrink-0 overflow-hidden rounded-lg border">
+    <section className="flex gap-6">
+      <div className="reveal border-line bg-surface-sunken w-[132px] shrink-0 overflow-hidden rounded-md border shadow-[var(--shadow-lift)]">
         {url ? (
-          <img src={url} alt="Cover preview" className="block h-auto w-full" />
+          <img src={url} alt="Cover of the converted book" className="block h-auto w-full" />
         ) : (
           <div className="aspect-[1/1.6] w-full" />
         )}
       </div>
-      <div className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Cover</span>
-        <span className="text-text-secondary">
-          {PROVENANCE[cover.source]} · {cover.w} × {cover.h}
+
+      <div className="flex flex-col gap-2 pt-1">
+        <h2 className="font-serif text-2xl tracking-[-0.02em]">Cover</h2>
+        <p className="text-ink-soft text-sm">{PROVENANCE[cover.source]}</p>
+        <p className="text-ink-muted font-mono text-xs">
+          {cover.w} × {cover.h}
           {cover.lossless ? ' · original quality' : ''}
-        </span>
+        </p>
         {oddRatio && (
-          <span className="text-warn">
-            Unusual proportions for a book cover. It will still display, just not fill the
-            screen.
-          </span>
+          <p className="bg-pale-yellow text-pale-yellow-ink mt-1 rounded px-2 py-1 text-xs">
+            Unusual proportions for a book cover. It will still display, just not fill the screen.
+          </p>
         )}
       </div>
     </section>
