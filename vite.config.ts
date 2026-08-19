@@ -11,6 +11,12 @@ import tailwindcss from '@tailwindcss/vite'
  * fingerprinted by Vite.
  */
 export default defineConfig({
+  /**
+   * Root by default, which is what Vercel serves. The GitHub Pages workflow sets
+   * `VITE_BASE=/pdf-to-epub/` because Pages serves a project site from a sub-path; everything in
+   * the app derives its asset URLs from `import.meta.env.BASE_URL` so both work unchanged.
+   */
+  base: process.env.VITE_BASE ?? '/',
   plugins: [react(), tailwindcss()],
   build: {
     // Top-level await inside module workers.

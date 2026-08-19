@@ -13,9 +13,16 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 /**
  * Without these two, CJK text and any PDF relying on the 14 standard fonts extract as garbage.
  * Easy to miss, because a Latin-only test file works fine without them.
+ *
+ * Built from `BASE_URL` rather than hardcoded to `/`, so the app works both at a domain root
+ * (Vercel) and under a sub-path (GitHub Pages serves this repo from `/pdf-to-epub/`). An absolute
+ * `/pdfjs/...` would 404 under a sub-path, and pdf.js reacts to a failed cMap fetch by silently
+ * producing garbled text rather than raising — the same failure mode that has already appeared
+ * twice in this project.
  */
-const CMAP_URL = '/pdfjs/cmaps/';
-const STANDARD_FONTS_URL = '/pdfjs/standard_fonts/';
+const BASE = import.meta.env.BASE_URL;
+const CMAP_URL = `${BASE}pdfjs/cmaps/`;
+const STANDARD_FONTS_URL = `${BASE}pdfjs/standard_fonts/`;
 
 export type PdfDocument = pdfjs.PDFDocumentProxy;
 

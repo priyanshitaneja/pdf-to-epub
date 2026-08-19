@@ -34,18 +34,20 @@ describe('pdf.js runtime assets', () => {
     expect(fonts.some((f) => f.endsWith('.pfb'))).toBe(true);
   }, 60_000);
 
-  it('puts them at the URLs loadDocument.ts actually requests', async () => {
-    // If these constants and the sync destinations ever drift apart, pdf.js gets HTML back.
+  it('derives its URLs from BASE_URL so a sub-path deploy still resolves', async () => {
     const source = await readFile(join(root, 'src/pdf/loadDocument.ts'), 'utf8');
-    const cmapUrl = /CMAP_URL = '([^']+)'/.exec(source)?.[1];
-    const fontUrl = /STANDARD_FONTS_URL = '([^']+)'/.exec(source)?.[1];
 
-    expect(cmapUrl).toBe('/pdfjs/cmaps/');
-    expect(fontUrl).toBe('/pdfjs/standard_fonts/');
+    // Hardcoding a leading slash breaks GitHub Pages, which serves this project from
+    // /pdf-to-epub/. pdf.js does not raise on a failed cMap fetch - it silently garbles text - so
+    // this is asserted rather than left to review.
+    expect(source).toContain('import.meta.env.BASE_URL');
+    expect(source).toMatch(/CMAP_URL = `\$\{BASE\}pdfjs\/cmaps\/`/);
+    expect(source).toMatch(/STANDARD_FONTS_URL = `\$\{BASE\}pdfjs\/standard_fonts\/`/);
+    expect(source).not.toMatch(/CMAP_URL = '\//);
 
-    // The public/ path that Vite maps each URL onto must exist.
-    for (const url of [cmapUrl!, fontUrl!]) {
-      const entries = await readdir(join(root, 'public', url));
+    // The sub-paths those URLs resolve to must exist under public/, whatever the base is.
+    for (const sub of ['pdfjs/cmaps', 'pdfjs/standard_fonts']) {
+      const entries = await readdir(join(root, 'public', sub));
       expect(entries.length).toBeGreaterThan(0);
     }
   });
