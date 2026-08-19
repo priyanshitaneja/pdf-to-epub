@@ -68,7 +68,7 @@ function layoutWithSpaceGlyphs(text: string, tracking = 0, em = EM): PositionedR
   return runs;
 }
 
-describe('joinRuns — the letter-spacing case', () => {
+describe('joinRuns: the letter-spacing case', () => {
   it('reads a heavily tracked heading as words, not single letters', () => {
     // The exact failure that motivated this module: "24-WEEK ROADMAP" printed with CSS
     // letter-spacing, emitted one glyph per run.
@@ -102,7 +102,7 @@ describe('joinRuns — the letter-spacing case', () => {
   });
 });
 
-describe('joinRuns — column gaps', () => {
+describe('joinRuns: column gaps', () => {
   it('emits a cell-break marker for a very wide gap rather than a space', () => {
     const left = layout('Quarter', { tracking: 0, startX: 0 });
     const right = layout('Spend', { tracking: 0, startX: 300 });
@@ -124,7 +124,7 @@ describe('joinRuns — column gaps', () => {
   });
 });
 
-describe('joinRuns — degenerate input', () => {
+describe('joinRuns: degenerate input', () => {
   it('returns an empty string for no runs', () => {
     expect(joinRuns([]).text).toBe('');
   });

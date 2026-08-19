@@ -59,7 +59,7 @@ export async function checkMimetypeBytes(blob: Blob): Promise<ValidationIssue[]>
     issues.push({
       severity: 'error',
       code: 'mimetype-not-first',
-      message: `First entry's filename length is ${nameLen}, expected ${MIMETYPE_NAME.length} — mimetype is not the first entry.`,
+      message: `First entry's filename length is ${nameLen}, expected ${MIMETYPE_NAME.length}, so mimetype is not the first entry.`,
     });
   }
 

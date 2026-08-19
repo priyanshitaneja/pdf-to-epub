@@ -73,13 +73,17 @@ export function Converter() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="enter" style={{ '--index': 1 } as React.CSSProperties}>
+      <div className="enter flex flex-col gap-2" style={{ '--index': 1 } as React.CSSProperties}>
         <FileDropzone
           file={state.file}
           disabled={state.step === 'converting'}
           onSelect={selectFile}
           onReject={fail}
         />
+        {/* Stated once, and here rather than in the header: this is the moment you hand over a file. */}
+        <p className="text-ink-muted text-xs">
+          Converted in this tab. Your file is never uploaded.
+        </p>
       </div>
 
       {(state.step === 'ready' || state.step === 'done' || state.step === 'error') && state.file && (

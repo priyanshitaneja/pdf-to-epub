@@ -29,7 +29,7 @@ export function ValidationReport({ validation }: ValidationReportProps) {
       ? `${errors.length} problem${errors.length === 1 ? '' : 's'} found`
       : warnings.length > 0
         ? `Valid, with ${warnings.length} note${warnings.length === 1 ? '' : 's'}`
-        : 'Valid EPUB — every check passed';
+        : 'Valid EPUB. Every check passed';
 
   const ok = errors.length === 0;
 

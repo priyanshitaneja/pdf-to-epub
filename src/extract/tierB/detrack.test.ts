@@ -63,7 +63,7 @@ describe('detrackLine', () => {
   });
 });
 
-describe('detrackRun — the preferred per-run entry point', () => {
+describe('detrackRun: the preferred per-run entry point', () => {
   it('collapses a tracked run completely', () => {
     expect(detrackRun('M O D U L E').text).toBe('MODULE');
     expect(detrackRun('2 4 - W E E K E X E C U T I O N').text).toBe('24-WEEKEXECUTION');
