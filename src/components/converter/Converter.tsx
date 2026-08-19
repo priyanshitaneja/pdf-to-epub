@@ -16,6 +16,7 @@ export function Converter() {
     state,
     selectFile,
     setMeta,
+    setFilename,
     startConvert,
     reportProgress,
     applyPdfMeta,
@@ -70,6 +71,11 @@ export function Converter() {
   ]);
 
   const blockedByValidation = state.result !== null && !state.result.validation.ok;
+  // `filenameOverride` holds the stem alone, so the extension stays ours to control.
+  const downloadName =
+    state.filenameOverride !== null
+      ? `${state.filenameOverride}.epub`
+      : (state.result?.filename ?? '');
 
   return (
     <div className="flex flex-col gap-6">
@@ -88,7 +94,9 @@ export function Converter() {
 
       {(state.step === 'ready' || state.step === 'done' || state.step === 'error') && state.file && (
         <div className="enter" style={{ '--index': 2 } as React.CSSProperties}>
-          <Button onClick={convert}>{state.step === 'done' ? 'Convert again' : 'Convert'}</Button>
+          <Button onClick={convert} wide>
+            {state.step === 'done' ? 'Convert again' : 'Convert'}
+          </Button>
         </div>
       )}
 
@@ -138,9 +146,10 @@ export function Converter() {
               <div className="border-line flex flex-col gap-3 border-t pt-6">
                 <DownloadButton
                   blob={state.result.blob}
-                  filename={state.result.filename}
+                  filename={downloadName}
                   blocked={blockedByValidation}
                   rebuilding={state.rebuilding}
+                  onFilenameChange={setFilename}
                 />
                 <p className="text-ink-muted max-w-[52ch] text-xs">
                   Edits to the details above apply on the next Convert. Send the downloaded file to

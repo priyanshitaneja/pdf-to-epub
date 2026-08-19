@@ -21,6 +21,12 @@ export interface ConverterState {
   coverOverride: CoverCandidate | null;
   progress: { stage: Stage; percent: number; detail?: string } | null;
   result: EpubBuildResult | null;
+  /**
+   * A download name the user typed, replacing the one derived from title and author. Null means
+   * "keep following the metadata". Explicit beats derived, so this survives a re-convert and is
+   * cleared only by choosing a different PDF or emptying the field.
+   */
+  filenameOverride: string | null;
   /** True while metadata or cover edits are being re-applied without re-parsing the PDF. */
   rebuilding: boolean;
   error: string | null;
@@ -35,6 +41,7 @@ const INITIAL: ConverterState = {
   coverOverride: null,
   progress: null,
   result: null,
+  filenameOverride: null,
   rebuilding: false,
   error: null,
 };
@@ -61,6 +68,10 @@ export function useConverterState() {
 
   const setOptions = useCallback((patch: Partial<ConvertOptions>) => {
     setState((s) => ({ ...s, options: { ...s.options, ...patch } }));
+  }, []);
+
+  const setFilename = useCallback((filenameOverride: string | null) => {
+    setState((s) => ({ ...s, filenameOverride }));
   }, []);
 
   const setCover = useCallback((cover: CoverCandidate | null) => {
@@ -105,6 +116,7 @@ export function useConverterState() {
     state,
     selectFile,
     setMeta,
+    setFilename,
     setOptions,
     setCover,
     startConvert,
