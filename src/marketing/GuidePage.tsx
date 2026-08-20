@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import type { Guide } from '../content/guides.ts';
 import { Footer } from './Footer.tsx';
+import { Section } from './Section.tsx';
 import { href } from './href.ts';
 
 export interface GuidePageProps {
@@ -11,9 +12,12 @@ export interface GuidePageProps {
 /**
  * A guide, rendered from content data.
  *
- * These pages ship no JavaScript at all: there is nothing interactive on them, so the prerenderer
- * omits the module script and they load as CSS and markup. That is most of why they are fast, and
- * they are the pages most likely to be someone's first arrival.
+ * Sections use the shared `Section`, so a guide reads with the same heading-beside-prose rhythm as
+ * the converter page rather than as a second design. That also keeps the measure cap in one place.
+ *
+ * These pages ship no JavaScript at all: nothing on them is interactive, so the prerenderer omits
+ * the module script and they load as markup and one stylesheet. They are the pages most likely to
+ * be someone's first arrival, which is where that matters most.
  */
 export function GuidePage({ guide, base }: GuidePageProps) {
   return (
@@ -41,25 +45,21 @@ export function GuidePage({ guide, base }: GuidePageProps) {
         </header>
 
         {guide.sections.map((section, i) => (
-          <section
-            key={section.heading}
-            className="enter border-line flex flex-col gap-4 border-t pt-8"
-            style={{ '--index': i + 1 } as CSSProperties}
-          >
-            <h2 className="font-serif text-2xl tracking-[-0.02em]">{section.heading}</h2>
-            <div className="text-ink-soft flex max-w-[65ch] flex-col gap-4 text-base">
-              {section.paragraphs.map((para) => (
-                <p key={para}>{para}</p>
-              ))}
-              {section.list && (
-                <ul className="flex list-disc flex-col gap-2 pl-5">
-                  {section.list.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </section>
+          <Section key={section.heading} heading={section.heading} index={i + 1}>
+            {section.paragraphs.map((para) => (
+              <p key={para}>{para}</p>
+            ))}
+            {section.list && (
+              <ul className="flex list-disc flex-col gap-2 pl-5">
+                {section.list.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            )}
+            {section.after?.map((para) => (
+              <p key={para}>{para}</p>
+            ))}
+          </Section>
         ))}
 
         <div

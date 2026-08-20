@@ -3,6 +3,8 @@ export interface GuideSection {
   paragraphs: string[];
   /** Rendered as a bulleted list after the paragraphs. */
   list?: string[];
+  /** Prose after the list, for when the list is an aside rather than the conclusion. */
+  after?: string[];
 }
 
 export interface Guide {
@@ -100,7 +102,17 @@ export const GUIDES: Guide[] = [
       {
         heading: 'The web uploader',
         paragraphs: [
-          'The simplest method, and the one to use if you are doing this once. Go to Amazon Send to Kindle in a browser, sign in with the account your Kindle is registered to, and drop the EPUB in. Pick the destination device, and it arrives in a minute or two.',
+          'The simplest method, and the one to use if you are doing this once. Open the Send to Kindle page in a browser, sign in with the account your Kindle is registered to, and drop the EPUB in. Pick the destination device and it arrives in a minute or two.',
+          'The address is your own Amazon domain followed by /sendtokindle, so which one you want depends on the marketplace your account belongs to:',
+        ],
+        list: [
+          'India: amazon.in/sendtokindle',
+          'United States: amazon.com/sendtokindle',
+          'United Kingdom: amazon.co.uk/sendtokindle',
+          'Germany: amazon.de/sendtokindle, and the same pattern for every other marketplace.',
+        ],
+        after: [
+          'If the page loads but the device list is empty, you are almost certainly signed in to a different marketplace from the one your Kindle is registered to. Accounts are per-marketplace, and the uploader only shows devices belonging to the account you are signed in as.',
           'The book goes into your Kindle library and syncs across devices, including reading position and highlights. Amazon stores a copy in your account, which is a convenience or a privacy consideration depending on what you are reading.',
         ],
       },

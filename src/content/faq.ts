@@ -48,7 +48,7 @@ export const FAQ: FaqItem[] = [
   },
   {
     q: 'How do I get the EPUB onto my Kindle?',
-    a: `Use Send to Kindle, either Amazon's Send to Kindle page, the desktop app, or by emailing the file to your device address. Amazon accepts EPUB directly now and converts it on their side. You can also copy the file over USB.`,
+    a: 'Use Send to Kindle, at your own Amazon domain followed by /sendtokindle: amazon.in/sendtokindle in India, amazon.com/sendtokindle in the United States, and the same pattern elsewhere. There is also a desktop app, or you can email the file to your device address, or copy it over USB. Amazon accepts EPUB directly now and converts it on their side.',
   },
   {
     q: 'Why convert at all, instead of emailing the PDF to my Kindle?',
